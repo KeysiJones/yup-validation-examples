@@ -1,108 +1,89 @@
 import "./App.css";
-import institutoAdmin from "./fotos/instituto-admin.png";
-import instipoa from "./fotos/instipoa.png";
-import jccarretos from "./fotos/jccarretos.png";
-import { useEffect } from "react";
-import Splide from "@splidejs/splide";
-import "@splidejs/splide/dist/css/splide.min.css";
-import blogPicture from "./fotos/blog.png";
-import React from "react";
-import {
-  Footer,
-  Carrousel,
-  CarrouselCard,
-  SectionTitle,
-  RegularCard,
-} from "./components";
-import { useSelector } from "react-redux";
-import { AboutMe } from "./components/about-me";
+import React, { useEffect, useState } from "react";
+import * as yup from 'yup';
+import { useForm } from "react-hook-form";
+import { yupResolver } from '@hookform/resolvers/yup';
 
-const openLink = (url) => window.open(url, "_blank");
+const Error = ({message}) => 
+  <p className="text-red-400">
+    {message}
+    </p>
 
 function App() {
-  const theme = useSelector((state) => state.theme.value);
-  const darkMode = theme === "dark";
+  const [documentType, setDocumentType] = useState("CPF");
+  let schema = yup.object().shape({
+    nome: yup.string().required(),
+    idade: yup.number().required().positive().integer(),
+    cpf: yup.string().when('cnpj', (cnpj, schema) => {
+      if((cnpj === '' || cnpj === undefined) && documentType === 'CPF') {
+        return schema.required();
+      }
 
+      return schema;
+    }),
+    cnpj: yup.string().when('cpf', (cpf, schema) => {
+      if((cpf === '' || cpf === undefined) && documentType === 'CNPJ') {
+        return schema.required();
+      }
+
+      return schema;
+    })
+    // cpf: yup.string().when('cnpj', {
+    //   is: (cnpj) => (cnpj === '' || cnpj === undefined) && documentType === 'CPF',
+    //   then: yup.string().required(),
+    //   otherwise: yup.string()
+    // }),
+    // cnpj: yup.string().when('cpf', {
+    //   is: (cpf) => cpf === '' && documentType === 'CNPJ',
+    //   then: yup.string().required(),
+    //   otherwise: yup.string()
+    // })
+  }, ["cnpj", "cpf"])
+
+  const { register, handleSubmit,watch, formState: { errors } } = useForm({
+    resolver: yupResolver(schema)
+  });
+console.log(watch())
   useEffect(() => {
-    new Splide(".splide").mount();
-  }, []);
+    console.log({errors})
+  }, [errors])
 
+  const onSubmit = data => console.log(data);
+  
   return (
-    <div
-      className={`${
-        darkMode ? "bg-gradient-to-br from-gray-800 to-gray-700" : "bg-white"
-      } h-screen`}
-    >
-      <div
-        className={`${
-          darkMode ? "bg-gradient-to-br from-gray-800 to-gray-700" : "bg-white"
-        } py-2`}
-      >
-        <div className="blink">
-          <AboutMe />
-          <SectionTitle title="My projects" />
-          <Carrousel>
-            <CarrouselCard
-              link="https://jccarretos.vercel.app/"
-              openLink={openLink}
-              cardImage={jccarretos}
-              description="JC Carretos is a website made to spread my father's
-                      freight services."
-            />
-            <CarrouselCard
-              link="https://instituto-helper.netlify.app/"
-              openLink={openLink}
-              cardImage={instipoa}
-              description="Instipoa is a web app made to make the access to our
-                  Institute classes easy."
-            />
-            <CarrouselCard
-              link="https://instituto-admin.vercel.app/"
-              openLink={openLink}
-              cardImage={institutoAdmin}
-              description="Instituto admin was developed to administrate Instipoa's
-                  classes."
-            />
-           <CarrouselCard
-              link="https://keysijones-blog.vercel.app/"
-              openLink={openLink}
-              cardImage={blogPicture}
-              description="My personal blog to write about tech, check it out."
-            />
-          </Carrousel>
-          <div id="meus-projetos">
-            <RegularCard
-              image={jccarretos}
-              openLink={openLink}
-              link="https://jccarretos.vercel.app"
-              description="JC Carretos is a website made to help my father's freight business"
-            />
-            <RegularCard
-              image={instipoa}
-              openLink={openLink}
-              link="https://instituto-helper.netlify.app"
-              description="Instipoa is an web app made to make the access to our Institute
-              classes easy."
-            />
-            <RegularCard
-              hasBorder
-              image={blogPicture}
-              openLink={openLink}
-              link="https://keysijones-blog.vercel.app"
-              description="My personal blog to write about tech, check it out."
-            />
-
-            <RegularCard
-              hasBorder
-              image={institutoAdmin}
-              openLink={openLink}
-              link="https://instituto-admin.vercel.app"
-              description="Instituto admin was developed to administrate Instipoa's
-              classes."
-            />
-          </div>
-          <Footer />
+    <div className="h-screen">
+      <div className="m-auto flex h-screen justify-center items-center">
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div className="flex flex-col">
+          <label>Nome</label>
+          <input type='text' className="mt-2 px-2 py-1 border-2 border-gray-300 rounded-md" {...register("nome")}></input>
         </div>
+        <div className="flex flex-col mt-2">
+          <label>Idade</label>
+          <input type='number' className="border-2 px-2 py-1 mt-2 border-gray-300 rounded-md" {...register("idade")}></input>
+        </div>
+        <select value={documentType} onChange={(e) => setDocumentType(e.target.value)} className="flex w-full mt-4 border-2 border-gray-800">
+          <option value="CPF">CPF</option>
+          <option value="CNPJ">CNPJ</option>
+        </select>
+        {
+          documentType === 'CPF' ?
+        <div className="flex flex-col">
+          <label>CPF</label>
+          <input type='text' placeholder="Informe o CPF" {...register("cpf")} className="mt-2 px-2 py-1 border-2 border-gray-300 rounded-md"></input>
+        </div>
+        :
+        <div className="flex flex-col">
+          <label>CNPJ</label>
+          <input type='text' placeholder="Informe o CNPJ" {...register("cnpj")} className="mt-2 px-2 py-1 border-2 border-gray-300 rounded-md"></input>
+        </div>
+        }
+        <button type="submit" className="mt-2 px-2 py-1 rounded-md bg-green-400 text-white">Enviar</button>
+        {errors.idade && <Error message="Idade é obrigatório"/>}
+        {errors.nome && <Error message="Nome é obrigatório"/>}
+        {errors.cpf && <Error message="CPF é obrigatório"/>}
+        {errors.cnpj && <Error message="CNPJ é obrigatório"/>}
+      </form>
       </div>
     </div>
   );
